@@ -81,11 +81,21 @@ while True:
     alpha = alpha.astype(float) / 255.0
     alpha = alpha[:, :, np.newaxis]  # (h, w) → (h, w, 1)
 
+    # **修正：確保 `alpha` 和 `background` 的形狀匹配**
+    alpha = np.concatenate([alpha] * 3, axis=2)  # 轉換為 (h, w, 3)，與 RGB 通道匹配
+
     # 創建 RGB 前景圖像
     foreground_rgb = cv2.merge([b, g, r])
 
-    # 背景與前景混合
-    blended = (foreground_rgb * alpha + background[y1:y2, x1:x2] * (1 - alpha)).astype(np.uint8)
+    # **修正：確保 `foreground_rgb` 和 `background[y1:y2, x1:x2]` 形狀相同**
+    foreground_rgb = cv2.resize(foreground_rgb, (fg_w_new, fg_h_new))
+
+    # **修正：確保 `background[y1:y2, x1:x2]` 的形狀與前景匹配**
+    background_patch = background[y1:y2, x1:x2]
+    background_patch = cv2.resize(background_patch, (fg_w_new, fg_h_new))
+
+    # **混合前景與背景**
+    blended = (foreground_rgb * alpha + background_patch * (1 - alpha)).astype(np.uint8)
 
     # 放回背景
     canvas[y1:y2, x1:x2] = blended
