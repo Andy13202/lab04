@@ -9,32 +9,39 @@ img = cv2.imread(image_path)
 if img is None:
     raise ValueError("无法加载图像，请检查路径是否正确！")
 
+# 加载 OpenCV 预训练的人脸检测器（Haar 级联分类器）
+face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+
 # 转换为灰度图
 gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-# 使用高斯模糊降低噪点
-blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+# 检测人脸（用于自动确定前景区域）
+faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
 
-# 使用 Canny 边缘检测
-edges = cv2.Canny(blurred, 50, 150)
+# 确保检测到人脸
+if len(faces) == 0:
+    print("未检测到人脸，使用默认矩形框进行 GrabCut")
+    rect = (10, 10, img.shape[1] - 20, img.shape[0] - 20)  # 默认框
+else:
+    # 获取检测到的最大人脸区域
+    x, y, w, h = faces[0]
+    rect = (x - 50, y - 50, w + 100, h + 200)  # 扩展框，确保包含整个上半身
 
-# 找到轮廓
-contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+# 创建掩码
+mask_gc = np.zeros(img.shape[:2], np.uint8)
 
-# 创建空白掩码
-mask = np.zeros_like(gray)
+# 创建背景和前景模型
+bgd_model = np.zeros((1, 65), np.float64)
+fgd_model = np.zeros((1, 65), np.float64)
 
-# 选择最大轮廓（通常是主体）
-if contours:
-    largest_contour = max(contours, key=cv2.contourArea)
-    cv2.drawContours(mask, [largest_contour], -1, (255), thickness=cv2.FILLED)
+# 使用 GrabCut 进行人物分割
+cv2.grabCut(img, mask_gc, rect, bgd_model, fgd_model, 5, cv2.GC_INIT_WITH_RECT)
 
-# 形态学操作，填补轮廓内的小空洞
-kernel = np.ones((5, 5), np.uint8)
-mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+# 处理掩码
+mask_gc_final = np.where((mask_gc == 2) | (mask_gc == 0), 0, 255).astype(np.uint8)
 
 # 应用掩码进行去背
-result = cv2.bitwise_and(img, img, mask=mask)
+result = cv2.bitwise_and(img, img, mask=mask_gc_final)
 
 # 显示结果
 cv2.imshow('Result', result)
