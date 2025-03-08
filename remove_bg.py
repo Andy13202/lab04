@@ -1,42 +1,42 @@
-import cv2
 import numpy as np
+import cv2
 
-def main():
-    # 用户输入图像路径
-    image = cv2.imread("Mask.jpg")
-    if image is None:
-        print("图像加载失败，请检查路径。")
-        return
+# 读取输入图像
+image_path = 'Mask.jpg'  # 请替换为你的图片路径
+img = cv2.imread(image_path)
 
-    # 创建一个与输入图像同样大小的掩码，并用可能的背景标记初始化
-    mask = np.zeros(image.shape[:2], np.uint8)
+# 确保图像正确加载
+if img is None:
+    raise ValueError("无法加载图像，请检查路径是否正确！")
 
-    # 定义背景和前景模型（内部使用）
-    bgdModel = np.zeros((1, 65), np.float64)
-    fgdModel = np.zeros((1, 65), np.float64)
+# 复制图像，避免直接修改原图
+img_copy = img.copy()
 
-    # 定义包含前景的矩形区域（格式为：x, y, w, h）
-    # 注意：这个矩形应尽量紧凑地包围前景对象
-    rect = (50, 50, image.shape[1]-100, image.shape[0]-100)  # 根据实际情况调整
+# 转换为 HSV 颜色空间
+hsv = cv2.cvtColor(img_copy, cv2.COLOR_BGR2HSV)
 
-    # 运行 GrabCut 算法
-    cv2.grabCut(image, mask, rect, bgdModel, fgdModel, 5, cv2.GC_INIT_WITH_RECT)
+# 自动选择颜色范围（适用于蓝色或绿色背景）
+lower_bound = np.array([35, 40, 40])   # 绿色背景
+upper_bound = np.array([90, 255, 255])
 
-    # 将背景区域的标记转换为0，前景为1
-    mask2 = np.where((mask == 2) | (mask == 0), 0, 1).astype('uint8')
+# 生成背景掩码
+mask = cv2.inRange(hsv, lower_bound, upper_bound)
 
-    # 使用掩码提取前景
-    image_fg = image * mask2[:, :, np.newaxis]
+# 反转掩码：保留人物部分
+mask_inv = cv2.bitwise_not(mask)
 
-    # 显示和保存结果
-    cv2.imshow("Original", image)
-    cv2.imshow("GrabCut Mask", mask2)
-    cv2.imshow("Foreground", image_fg)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+# 形态学操作（去除噪点）
+kernel = np.ones((5, 5), np.uint8)
+mask_inv = cv2.morphologyEx(mask_inv, cv2.MORPH_CLOSE, kernel)
 
-    # 保存结果图像
-    cv2.imwrite("foreground_extracted.png", image_fg)
+# 应用掩码进行去背
+result = cv2.bitwise_and(img_copy, img_copy, mask=mask_inv)
 
-if __name__ == "__main__":
-    main()
+# 显示结果
+cv2.imshow('Result', result)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+
+# 保存去背结果
+cv2.imwrite('segmented_output.png', result)
+print("去背图片已保存： segmented_output.png")
