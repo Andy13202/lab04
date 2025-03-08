@@ -1,82 +1,33 @@
 import cv2
 import numpy as np
-import tkinter as tk
-from tkinter import filedialog
 
-def remove_background(image_path, lower_bound, upper_bound, blur_size, smooth_factor):
-    # 讀取圖片
-    image = cv2.imread(image_path)
-    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-    
-    # 建立遮罩
-    mask = cv2.inRange(hsv, lower_bound, upper_bound)
-    mask = cv2.medianBlur(mask, blur_size)  # 平滑遮罩
-    
-    # 產生透明背景
-    result = cv2.bitwise_and(image, image, mask=~mask)
-    result = cv2.cvtColor(result, cv2.COLOR_BGR2BGRA)
-    result[:, :, 3] = cv2.bitwise_not(mask) // smooth_factor  # 透明度調整
-    
-    return result
+# 讀取圖片
+image_path = "animal.jpg"  # 請更換為你的圖片路徑
+image = cv2.imread(image_path)
 
-def choose_file():
-    file_path = filedialog.askopenfilename(filetypes=[("Image Files", "*.jpg;*.png;*.jpeg")])
-    if file_path:
-        process_image(file_path)
+# 創建遮罩
+mask = np.zeros(image.shape[:2], np.uint8)
 
-def process_image(image_path):
-    lower_h = int(lower_hue.get())
-    lower_s = int(lower_saturation.get())
-    lower_v = int(lower_value.get())
-    upper_h = int(upper_hue.get())
-    upper_s = int(upper_saturation.get())
-    upper_v = int(upper_value.get())
-    blur = int(blur_size.get())
-    smooth = int(smooth_factor.get())
-    
-    lower_bound = np.array([lower_h, lower_s, lower_v])
-    upper_bound = np.array([upper_h, upper_s, upper_v])
-    
-    output = remove_background(image_path, lower_bound, upper_bound, blur, smooth)
-    cv2.imshow("Background Removed", output)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+# 建立背景與前景模型（GrabCut 需要的格式）
+bgd_model = np.zeros((1, 65), np.float64)
+fgd_model = np.zeros((1, 65), np.float64)
 
-# 建立 GUI 介面
-root = tk.Tk()
-root.title("去背調整工具")
+# 設定 ROI（感興趣區域），假設動物大致位於圖像中央
+height, width = image.shape[:2]
+rect = (10, 10, width - 20, height - 20)  # 預設 ROI 範圍
 
-tk.Label(root, text="Lower Hue").pack()
-lower_hue = tk.Scale(root, from_=0, to=179, orient="horizontal")
-lower_hue.pack()
+# 應用 GrabCut
+cv2.grabCut(image, mask, rect, bgd_model, fgd_model, 5, cv2.GC_INIT_WITH_RECT)
 
-tk.Label(root, text="Lower Saturation").pack()
-lower_saturation = tk.Scale(root, from_=0, to=255, orient="horizontal")
-lower_saturation.pack()
+# 產生前景遮罩
+mask2 = np.where((mask == 2) | (mask == 0), 0, 1).astype("uint8")
 
-tk.Label(root, text="Lower Value").pack()
-lower_value = tk.Scale(root, from_=0, to=255, orient="horizontal")
-lower_value.pack()
+# 應用遮罩
+result = image * mask2[:, :, np.newaxis]
 
-tk.Label(root, text="Upper Hue").pack()
-upper_hue = tk.Scale(root, from_=0, to=179, orient="horizontal")
-upper_hue.pack()
+# 顯示結果
+cv2.imshow("Original Image", image)
+cv2.imshow("Removed Background", result)
 
-tk.Label(root, text="Upper Saturation").pack()
-upper_saturation = tk.Scale(root, from_=0, to=255, orient="horizontal")
-upper_saturation.pack()
-
-tk.Label(root, text="Upper Value").pack()
-upper_value = tk.Scale(root, from_=0, to=255, orient="horizontal")
-upper_value.pack()
-
-tk.Label(root, text="Blur Size").pack()
-blur_size = tk.Scale(root, from_=1, to=25, orient="horizontal")
-blur_size.pack()
-
-tk.Label(root, text="Smooth Factor").pack()
-smooth_factor = tk.Scale(root, from_=1, to=10, orient="horizontal")
-smooth_factor.pack()
-
-tk.Button(root, text="Mask.jpg", command=choose_file).pack()
-root.mainloop()
+cv2.waitKey(0)
+cv2.destroyAllWindows()
