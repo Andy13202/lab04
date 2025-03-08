@@ -9,32 +9,42 @@ img = cv2.imread(image_path)
 if img is None:
     raise ValueError("无法加载图像，请检查路径是否正确！")
 
-# 加载 OpenCV 预训练的人脸检测器（Haar 级联分类器）
-face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+# 加载 DNN 人脸检测模型（Caffe 版本）
+prototxt_path = "deploy.prototxt"
+model_path = "res10_300x300_ssd_iter_140000.caffemodel"
+face_net = cv2.dnn.readNetFromCaffe(prototxt_path, model_path)
 
-# 转换为灰度图
-gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+# 读取图像并转换为 DNN 输入格式
+(h, w) = img.shape[:2]
+blob = cv2.dnn.blobFromImage(img, 1.0, (300, 300), (104.0, 177.0, 123.0))
 
-# 检测人脸（用于自动确定前景区域）
-faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+# 运行 DNN 模型进行人脸检测
+face_net.setInput(blob)
+detections = face_net.forward()
 
-# 确保检测到人脸
-if len(faces) == 0:
+# 解析检测结果
+rect = None
+for i in range(detections.shape[2]):
+    confidence = detections[0, 0, i, 2]
+    if confidence > 0.5:  # 置信度超过 50%
+        box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
+        (x, y, x2, y2) = box.astype("int")
+        rect = (max(0, x - 50), max(0, y - 50), min(w, x2 - x + 100), min(h, y2 - y + 200))
+        break  # 只取第一个检测到的人脸
+
+# 如果未检测到人脸，使用默认矩形框
+if rect is None:
     print("未检测到人脸，使用默认矩形框进行 GrabCut")
-    rect = (10, 10, img.shape[1] - 20, img.shape[0] - 20)  # 默认框
-else:
-    # 获取检测到的最大人脸区域
-    x, y, w, h = faces[0]
-    rect = (x - 50, y - 50, w + 100, h + 200)  # 扩展框，确保包含整个上半身
+    rect = (10, 10, img.shape[1] - 20, img.shape[0] - 20)
 
-# 创建掩码
+# 创建 GrabCut 掩码
 mask_gc = np.zeros(img.shape[:2], np.uint8)
 
 # 创建背景和前景模型
 bgd_model = np.zeros((1, 65), np.float64)
 fgd_model = np.zeros((1, 65), np.float64)
 
-# 使用 GrabCut 进行人物分割
+# 应用 GrabCut 进行人物去背
 cv2.grabCut(img, mask_gc, rect, bgd_model, fgd_model, 5, cv2.GC_INIT_WITH_RECT)
 
 # 处理掩码
@@ -43,7 +53,7 @@ mask_gc_final = np.where((mask_gc == 2) | (mask_gc == 0), 0, 255).astype(np.uint
 # 应用掩码进行去背
 result = cv2.bitwise_and(img, img, mask=mask_gc_final)
 
-# 显示结果
+# 显示去背结果
 cv2.imshow('Result', result)
 cv2.waitKey(0)
 cv2.destroyAllWindows()
