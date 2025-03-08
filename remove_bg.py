@@ -2,35 +2,39 @@ import numpy as np
 import cv2
 
 # 读取输入图像
-image_path = 'Mask.jpg'  # 请替换为你的图片路径
+image_path = 'Mask.jpg'  # 替换为你的图片路径
 img = cv2.imread(image_path)
 
 # 确保图像正确加载
 if img is None:
     raise ValueError("无法加载图像，请检查路径是否正确！")
 
-# 复制图像，避免直接修改原图
-img_copy = img.copy()
+# 转换为灰度图
+gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-# 转换为 HSV 颜色空间
-hsv = cv2.cvtColor(img_copy, cv2.COLOR_BGR2HSV)
+# 使用高斯模糊降低噪点
+blurred = cv2.GaussianBlur(gray, (5, 5), 0)
 
-# 自动选择颜色范围（适用于蓝色或绿色背景）
-lower_bound = np.array([35, 40, 40])   # 绿色背景
-upper_bound = np.array([90, 255, 255])
+# 使用 Canny 边缘检测
+edges = cv2.Canny(blurred, 50, 150)
 
-# 生成背景掩码
-mask = cv2.inRange(hsv, lower_bound, upper_bound)
+# 找到轮廓
+contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-# 反转掩码：保留人物部分
-mask_inv = cv2.bitwise_not(mask)
+# 创建空白掩码
+mask = np.zeros_like(gray)
 
-# 形态学操作（去除噪点）
+# 选择最大轮廓（通常是主体）
+if contours:
+    largest_contour = max(contours, key=cv2.contourArea)
+    cv2.drawContours(mask, [largest_contour], -1, (255), thickness=cv2.FILLED)
+
+# 形态学操作，填补轮廓内的小空洞
 kernel = np.ones((5, 5), np.uint8)
-mask_inv = cv2.morphologyEx(mask_inv, cv2.MORPH_CLOSE, kernel)
+mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
 
 # 应用掩码进行去背
-result = cv2.bitwise_and(img_copy, img_copy, mask=mask_inv)
+result = cv2.bitwise_and(img, img, mask=mask)
 
 # 显示结果
 cv2.imshow('Result', result)
