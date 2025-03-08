@@ -60,8 +60,8 @@ while True:
     canvas = background.copy()
 
     # 確保不超出邊界
-    x_offset = min(max(x_offset, 0), bg_w - fg_w)
-    y_offset = min(max(y_offset, 0), bg_h - fg_h)
+    x_offset = min(max(x_offset, 0), bg_w - 1)
+    y_offset = min(max(y_offset, 0), bg_h - 1)
 
     # 計算貼圖範圍（避免超出背景）
     y1, y2 = y_offset, min(y_offset + fg_h, bg_h)
@@ -71,6 +71,9 @@ while True:
     fg_h_new = y2 - y1
     fg_w_new = x2 - x1
 
+    if fg_h_new <= 0 or fg_w_new <= 0:
+        continue  # 避免無效範圍導致錯誤
+
     # 縮放人物圖像，使其與背景對齊
     fg_resized = cv2.resize(foreground, (fg_w_new, fg_h_new))
 
@@ -79,26 +82,23 @@ while True:
 
     # 確保 alpha 遮罩大小正確
     alpha = alpha.astype(float) / 255.0
-    alpha = alpha[:, :, np.newaxis]  # (h, w) → (h, w, 1)
+    alpha = np.expand_dims(alpha, axis=2)  # 轉換為 (h, w, 1)
 
-    # **修正：確保 `alpha` 和 `background` 的形狀匹配**
-    alpha = np.concatenate([alpha] * 3, axis=2)  # 轉換為 (h, w, 3)，與 RGB 通道匹配
-
-    # 創建 RGB 前景圖像
+    # **確保 `foreground_rgb` 和 `background[y1:y2, x1:x2]` 形狀匹配**
     foreground_rgb = cv2.merge([b, g, r])
 
-    # **修正：確保 `foreground_rgb` 和 `background[y1:y2, x1:x2]` 形狀相同**
-    foreground_rgb = cv2.resize(foreground_rgb, (fg_w_new, fg_h_new))
-
-    # **修正：確保 `background[y1:y2, x1:x2]` 的形狀與前景匹配**
+    # **確保 `background_patch` 形狀匹配**
     background_patch = background[y1:y2, x1:x2]
+
+    # **確保 `background_patch` 和 `foreground_rgb` 一致**
     background_patch = cv2.resize(background_patch, (fg_w_new, fg_h_new))
 
     # **混合前景與背景**
     blended = (foreground_rgb * alpha + background_patch * (1 - alpha)).astype(np.uint8)
 
-    # 放回背景
-    canvas[y1:y2, x1:x2] = blended
+    # **確保 `canvas[y1:y2, x1:x2]` 形狀匹配**
+    if blended.shape == canvas[y1:y2, x1:x2].shape:
+        canvas[y1:y2, x1:x2] = blended
 
     # 顯示畫面
     cv2.imshow("Adjust Position", canvas)
