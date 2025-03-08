@@ -67,11 +67,11 @@ while True:
     y1, y2 = y_offset, min(y_offset + fg_h, bg_h)
     x1, x2 = x_offset, min(x_offset + fg_w, bg_w)
 
-    # 確保前景圖片與背景對齊
+    # 計算實際的貼圖大小
     fg_h_new = y2 - y1
     fg_w_new = x2 - x1
 
-    # 縮放人物
+    # 縮放人物圖像，使其與背景對齊
     fg_resized = cv2.resize(foreground, (fg_w_new, fg_h_new))
 
     # 分離前景的 RGB 與 Alpha 通道
@@ -79,12 +79,16 @@ while True:
 
     # 確保 alpha 遮罩大小正確
     alpha = alpha.astype(float) / 255.0
-    alpha = cv2.resize(alpha, (fg_w_new, fg_h_new))
-    alpha = alpha[:, :, np.newaxis]  # 轉換為 (h, w, 1)
+    alpha = alpha[:, :, np.newaxis]  # (h, w) → (h, w, 1)
 
-    # 遮罩處理，將前景疊加到背景
-    for c in range(3):
-        canvas[y1:y2, x1:x2, c] = (b * alpha + background[y1:y2, x1:x2, c] * (1 - alpha)).astype(np.uint8)
+    # 創建 RGB 前景圖像
+    foreground_rgb = cv2.merge([b, g, r])
+
+    # 背景與前景混合
+    blended = (foreground_rgb * alpha + background[y1:y2, x1:x2] * (1 - alpha)).astype(np.uint8)
+
+    # 放回背景
+    canvas[y1:y2, x1:x2] = blended
 
     # 顯示畫面
     cv2.imshow("Adjust Position", canvas)
