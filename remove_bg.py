@@ -1,35 +1,22 @@
+from rembg import remove
 import cv2
 import numpy as np
 
 # 讀取圖片
-image_path = "animal.jpg"  # 請更換為你的圖片路徑
+image_path = "animal.jpg"
 image = cv2.imread(image_path)
 
-# 轉換為灰階
-gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+# 轉換為 RGBA 格式（RemBG 需要）
+image_rgba = cv2.cvtColor(image, cv2.COLOR_BGR2RGBA)
 
-# 去除雜訊
-blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+# 進行背景移除
+result = remove(image_rgba)
 
-# 邊緣檢測
-edges = cv2.Canny(blurred, 50, 150)
-
-# 擴展邊緣，使分割效果更好
-kernel = np.ones((3, 3), np.uint8)
-edges_dilated = cv2.dilate(edges, kernel, iterations=2)
-
-# 建立遮罩
-mask = cv2.threshold(edges_dilated, 0, 255, cv2.THRESH_BINARY)[1]
-
-# 轉換遮罩為 3 通道
-mask_3ch = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
-
-# 套用遮罩
-result = cv2.bitwise_and(image, mask_3ch)
+# 儲存 PNG（保留透明背景）
+output_path = "animal_no_bg.png"
+cv2.imwrite(output_path, result)
 
 # 顯示結果
-cv2.imshow("Original Image", image)
 cv2.imshow("Removed Background", result)
-
 cv2.waitKey(0)
 cv2.destroyAllWindows()
