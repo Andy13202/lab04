@@ -37,7 +37,7 @@ rect = (10, 10, width - 20, height - 20)
 # **可視化初始遮罩**
 plt.subplot(1, 3, 1)
 plt.imshow(mask, cmap="gray")
-plt.title("🔹 初始遮罩 (全部背景)")
+plt.title("Original backround")
 plt.axis("off")
 
 # **執行 GrabCut**
@@ -48,7 +48,7 @@ mask_visual = np.where((mask == cv2.GC_BGD) | (mask == cv2.GC_PR_BGD), 0, 1).ast
 
 plt.subplot(1, 3, 2)
 plt.imshow(mask_visual, cmap="gray")
-plt.title("🔹 GrabCut 後的遮罩")
+plt.title("Afteer GrabCut ")
 plt.axis("off")
 
 # **應用形態學處理**
@@ -57,7 +57,7 @@ mask_cleaned = cv2.morphologyEx(mask_visual, cv2.MORPH_CLOSE, kernel)
 
 plt.subplot(1, 3, 3)
 plt.imshow(mask_cleaned, cmap="gray")
-plt.title("🔹 形態學處理後的遮罩")
+plt.title("morph_size")
 plt.axis("off")
 
 plt.show()
@@ -81,12 +81,12 @@ cv2.imwrite(output_path, result_rgba)
 # **顯示最終去背結果**
 plt.subplot(1, 2, 1)
 plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-plt.title("🖼 原始圖片")
+plt.title("Original")
 plt.axis("off")
 
 plt.subplot(1, 2, 2)
 plt.imshow(cv2.cvtColor(result, cv2.COLOR_BGR2RGB))
-plt.title("✅ 最終去背結果")
+plt.title("After")
 plt.axis("off")
 
 plt.show()
