@@ -28,7 +28,7 @@ def canny_edge_detection(image_path, low_threshold, high_threshold):
     
     plt.subplot(1, 2, 2)
     plt.imshow(edges, cmap='gray')
-    plt.title(f'Canny 邊緣檢測\n低閾值: {low_threshold}, 高閾值: {high_threshold}')
+    plt.title(f'Canny Edge Detection\nLow Threshold: {low_threshold}, High Threshold: {high_threshold}')
     plt.axis('off')
     
     plt.show()
