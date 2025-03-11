@@ -9,18 +9,18 @@ image = cv2.imread(image_path)
 height, width = image.shape[:2]
 
 # 讓學生輸入參數
-print("請輸入去背參數（按 Enter 使用預設值）：")
+print("請輸入去背參數（不輸入的話，直接按 Enter 可自動使用最大值）：")
 
 blur_amount = input("1️⃣ 模糊程度（0-10，影響邊緣平滑度）：")
-blur_amount = int(blur_amount) if blur_amount.isdigit() else 3
+blur_amount = int(blur_amount) if blur_amount.isdigit() else 10
 blur_amount = max(0, min(blur_amount, 10))  # 限制範圍 0-10
 
 fg_threshold = input("2️⃣ 前景閥值（50-255，影響保留範圍）：")
-fg_threshold = int(fg_threshold) if fg_threshold.isdigit() else 150
+fg_threshold = int(fg_threshold) if fg_threshold.isdigit() else 255
 fg_threshold = max(50, min(fg_threshold, 255))  # 限制範圍 50-255
 
 morph_size = input("3️⃣ 形態學處理（0-5，影響邊緣細節）：")
-morph_size = int(morph_size) if morph_size.isdigit() else 2
+morph_size = int(morph_size) if morph_size.isdigit() else 5
 morph_size = max(0, min(morph_size, 5))  # 限制範圍 0-5
 
 # 建立遮罩
