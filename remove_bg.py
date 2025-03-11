@@ -37,7 +37,7 @@ rect = (10, 10, width - 20, height - 20)
 # **可視化初始遮罩**
 plt.subplot(2, 3, 1)
 plt.imshow(mask, cmap="gray")
-plt.title("🔹 初始遮罩 (全部背景)")
+plt.title("Initial Mask (All Background)")
 plt.axis("off")
 
 # **執行 GrabCut**
@@ -48,7 +48,7 @@ mask_visual = np.where((mask == cv2.GC_BGD) | (mask == cv2.GC_PR_BGD), 0, 1).ast
 
 plt.subplot(2, 3, 2)
 plt.imshow(mask_visual, cmap="gray")
-plt.title("🔹 GrabCut 運行後遮罩")
+plt.title("Mask After GrabCut")
 plt.axis("off")
 
 # **應用形態學處理**
@@ -65,17 +65,17 @@ mask_gradient = cv2.morphologyEx(mask_visual, cv2.MORPH_GRADIENT, kernel)
 
 plt.subplot(2, 3, 3)
 plt.imshow(mask_closed, cmap="gray")
-plt.title("🔹 閉運算 (填補孔洞)")
+plt.title("Morphology Close (Fill Holes)")
 plt.axis("off")
 
 plt.subplot(2, 3, 4)
 plt.imshow(mask_opened, cmap="gray")
-plt.title("🔹 開運算 (去除小噪點)")
+plt.title("Morphology Open (Remove Noise)")
 plt.axis("off")
 
 plt.subplot(2, 3, 5)
 plt.imshow(mask_gradient, cmap="gray")
-plt.title("🔹 邊緣梯度運算 (可視化邊緣變化)")
+plt.title("Edge Gradient (Show Edge Changes)")
 plt.axis("off")
 
 plt.show()
@@ -102,12 +102,12 @@ cv2.imwrite(output_path, result_rgba)
 # **顯示最終去背結果**
 plt.subplot(1, 2, 1)
 plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-plt.title("🖼 原始圖片")
+plt.title("Original")
 plt.axis("off")
 
 plt.subplot(1, 2, 2)
 plt.imshow(cv2.cvtColor(result, cv2.COLOR_BGR2RGB))
-plt.title("✅ 最終去背結果")
+plt.title("After")
 plt.axis("off")
 
 plt.show()
