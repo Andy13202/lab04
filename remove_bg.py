@@ -37,7 +37,7 @@ rect = (10, 10, width - 20, height - 20)
 # **可視化初始遮罩**
 plt.subplot(2, 3, 1)
 plt.imshow(mask, cmap="gray")
-plt.title("Initial Mask (All Background)")
+plt.title("Initial Mask")
 plt.axis("off")
 
 # **執行 GrabCut**
@@ -65,17 +65,17 @@ mask_gradient = cv2.morphologyEx(mask_visual, cv2.MORPH_GRADIENT, kernel)
 
 plt.subplot(2, 3, 3)
 plt.imshow(mask_closed, cmap="gray")
-plt.title("Morphology Close (Fill Holes)")
+plt.title("Morphology Close")
 plt.axis("off")
 
 plt.subplot(2, 3, 4)
 plt.imshow(mask_opened, cmap="gray")
-plt.title("Morphology Open (Remove Noise)")
+plt.title("Morphology Open")
 plt.axis("off")
 
 plt.subplot(2, 3, 5)
 plt.imshow(mask_gradient, cmap="gray")
-plt.title("Edge Gradient (Show Edge Changes)")
+plt.title("Edge Gradient")
 plt.axis("off")
 
 plt.show()
